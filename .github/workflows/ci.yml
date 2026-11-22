@@ -1,0 +1,57 @@
+name: CI & Security Scan
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+# Least-privilege permissions: only grant what this workflow genuinely needs
+permissions:
+  contents: read
+  security-events: write  # Needed to upload SARIF findings to GitHub Security tab
+
+jobs:
+  test-and-scan:
+    name: Unit Tests & Authorization Scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+          pip install "fastapi>=0.100" "uvicorn>=0.20"
+
+      - name: Run Pytest Suite with Coverage
+        run: |
+          pytest -v --cov=authzprobe
+
+      - name: Start Demo Fixture API (Background)
+        run: |
+          uvicorn fixtures.vulnerable_app:app --port 8000 &
+          sleep 3
+
+      - name: Run authz-probe Security Scan & Generate SARIF
+        run: |
+          authz-probe scan fixtures/spec.yaml \
+            --policy fixtures/policy.yaml \
+            --base-url http://127.0.0.1:8000 \
+            --output-sarif results.sarif \
+            --output-md results.md \
+            --no-fail
+
+      - name: Upload SARIF to GitHub Code Scanning
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: results.sarif
+          category: authz-probe
