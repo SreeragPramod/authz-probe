@@ -1,14 +1,15 @@
-"""Command-line interface for authz-probe."""
+"""Command-line interface for authz-probe with grouped findings and severity ratings."""
 
 import typer
 from rich.console import Console
 from rich.table import Table
+from rich.panel import Panel
 
 from authzprobe import __version__
 from authzprobe.spec import load_openapi_spec
 from authzprobe.policy import load_policy
 from authzprobe.engine import run_cross_identity_tests
-from authzprobe.verdict import Verdict
+from authzprobe.verdict import Verdict, Severity
 
 app = typer.Typer(
     name="authz-probe",
@@ -23,15 +24,17 @@ def scan(
     policy: str = typer.Option(..., "--policy", "-p", help="Path to policy YAML file"),
     base_url: str = typer.Option(..., "--base-url", "-b", help="Base URL of target API"),
 ):
-    """Run cross-identity authorization tests against an API."""
-    console.print(f"[bold cyan]🔍 authz-probe v{__version__}[/bold cyan]")
-    console.print(f"Target: [green]{base_url}[/green] | Spec: [yellow]{spec}[/yellow]\n")
+    """Run authorization tests and display findings grouped by type and severity."""
+    console.print(Panel(
+        f"[bold white]authz-probe v{__version__}[/bold white]\n"
+        f"Target: [green]{base_url}[/green] | Spec: [yellow]{spec}[/yellow]",
+        title="[bold cyan]API Authorization Security Scanner[/bold cyan]",
+        expand=False,
+    ))
 
-    # 1. Load Spec and Policy
     operations = load_openapi_spec(spec)
     policy_data = load_policy(policy)
 
-    # 2. Run scan with target seed mapping (alice belongs to user_a)
     target_seed = {"username": "alice"}
     findings = run_cross_identity_tests(
         operations=operations,
@@ -40,31 +43,43 @@ def scan(
         target_object_map=target_seed,
     )
 
-    # 3. Print Results in a Rich Table
-    table = Table(title="Authorization Scan Results", show_lines=True)
-    table.add_column("Endpoint", style="bold")
-    table.add_column("Tested Identity", style="cyan")
-    table.add_column("Status Code", justify="center")
-    table.add_column("Verdict", justify="center")
-    table.add_column("Details")
+    # Filter to findings that require attention (VULNERABLE and SUSPICIOUS)
+    vulnerabilities = [f for f in findings if f.verdict in (Verdict.VULNERABLE, Verdict.SUSPICIOUS)]
 
-    for f in findings:
-        if f.verdict == Verdict.VULNERABLE:
-            verdict_style = "[bold red]VULNERABLE[/bold red]"
-        elif f.verdict == Verdict.SUSPICIOUS:
-            verdict_style = "[bold yellow]SUSPICIOUS[/bold yellow]"
+    if not vulnerabilities:
+        console.print("\n[bold green]✔ No authorization vulnerabilities detected![/bold green]\n")
+        return
+
+    # Build Beautiful Rich Table
+    table = Table(title="🚨 Authorization Findings Detected", show_lines=True)
+    table.add_column("Type", style="bold magenta", no_wrap=True)
+    table.add_column("Severity", justify="center")
+    table.add_column("Endpoint", style="bold")
+    table.add_column("Tested By", style="cyan")
+    table.add_column("Status", justify="center")
+    table.add_column("Remediation Hint", style="italic yellow")
+
+    for f in vulnerabilities:
+        # Color code severity
+        if f.severity == Severity.HIGH:
+            sev_style = "[bold red]HIGH[/bold red]"
+        elif f.severity == Severity.MEDIUM:
+            sev_style = "[bold yellow]MEDIUM[/bold yellow]"
         else:
-            verdict_style = "[bold green]OK[/bold green]"
+            sev_style = "[blue]LOW[/blue]"
 
         table.add_row(
+            f.vuln_type.value,
+            sev_style,
             f"{f.method} {f.path}",
             f.tested_identity,
             str(f.status_code),
-            verdict_style,
-            f.detail,
+            f.remediation,
         )
 
+    console.print("\n")
     console.print(table)
+    console.print(f"\n[bold red]Total Findings:[/bold red] {len(vulnerabilities)} authorization failure(s) identified.\n")
 
 
 @app.command()
