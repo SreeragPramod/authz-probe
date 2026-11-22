@@ -1,0 +1,14 @@
+openapi: 3.0.0
+info:
+  title: Document Fixture API
+  version: 1.0.0
+paths:
+  /api/documents/{doc_id}:
+    get:
+      summary: Get document by ID
+      parameters:
+        - name: doc_id
+          in: path
+          required: true
+          schema:
+            type: string

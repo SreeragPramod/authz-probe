@@ -1,0 +1,11 @@
+version: "1"
+identities:
+  user_a:
+    auth_header: "Bearer token_alice"
+    role: "user"
+  user_b:
+    auth_header: "Bearer token_bob"
+    role: "user"
+  anonymous:
+    auth_header: ""
+    role: "anonymous"

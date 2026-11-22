@@ -42,7 +42,12 @@ def scan(
     operations = load_openapi_spec(spec)
     policy_data = load_policy(policy)
 
-    target_seed = {"username": "alice"}
+    target_seed = {
+        "username": "alice",
+        "doc_id": "alice_doc",
+        "id": "alice",
+        "user": "alice",
+    }
     findings = run_cross_identity_tests(
         operations=operations,
         policy=policy_data,
