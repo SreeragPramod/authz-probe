@@ -1,0 +1,74 @@
+[
+  {
+    "path": "/users/v1/_debug",
+    "method": "GET",
+    "target_owner": "N/A",
+    "tested_identity": "user_a",
+    "status_code": 200,
+    "verdict": "VULNERABLE",
+    "vuln_type": "BFLA (API5:2023)",
+    "severity": "HIGH",
+    "detail": "Administrative endpoint accessible by regular identity 'user_a'",
+    "remediation": "Implement role-based access control (RBAC): verify caller has 'admin' role before executing."
+  },
+  {
+    "path": "/users/v1/_debug",
+    "method": "GET",
+    "target_owner": "N/A",
+    "tested_identity": "user_b",
+    "status_code": 200,
+    "verdict": "VULNERABLE",
+    "vuln_type": "BFLA (API5:2023)",
+    "severity": "HIGH",
+    "detail": "Administrative endpoint accessible by regular identity 'user_b'",
+    "remediation": "Implement role-based access control (RBAC): verify caller has 'admin' role before executing."
+  },
+  {
+    "path": "/users/v1/_debug",
+    "method": "GET",
+    "target_owner": "N/A",
+    "tested_identity": "anonymous",
+    "status_code": 200,
+    "verdict": "VULNERABLE",
+    "vuln_type": "Missing Authentication (API2:2023)",
+    "severity": "HIGH",
+    "detail": "Endpoint accessible without authentication (HTTP 200)",
+    "remediation": "Enforce authentication middleware or decorator (e.g., @login_required) on this route."
+  },
+  {
+    "path": "/users/v1/alice",
+    "method": "GET",
+    "target_owner": "alice",
+    "tested_identity": "user_b",
+    "status_code": 200,
+    "verdict": "VULNERABLE",
+    "vuln_type": "BOLA / IDOR (API1:2023)",
+    "severity": "HIGH",
+    "detail": "HTTP 200 leaked data of 'alice' to unauthorized 'user_b'",
+    "remediation": "Validate object ownership on every request: verify current_user.id == object.owner_id."
+  },
+  {
+    "path": "/users/v1/alice",
+    "method": "GET",
+    "target_owner": "alice",
+    "tested_identity": "admin",
+    "status_code": 200,
+    "verdict": "VULNERABLE",
+    "vuln_type": "BOLA / IDOR (API1:2023)",
+    "severity": "HIGH",
+    "detail": "HTTP 200 leaked data of 'alice' to unauthorized 'admin'",
+    "remediation": "Validate object ownership on every request: verify current_user.id == object.owner_id."
+  },
+  {
+    "path": "/users/v1/alice",
+    "method": "GET",
+    "target_owner": "alice",
+    "tested_identity": "anonymous",
+    "status_code": 200,
+    "verdict": "VULNERABLE",
+    "vuln_type": "Missing Authentication (API2:2023)",
+    "severity": "HIGH",
+    "detail": "Endpoint accessible without authentication (HTTP 200)",
+    "remediation": "Enforce authentication middleware or decorator (e.g., @login_required) on this route."
+  }
+]
