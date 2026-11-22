@@ -1,0 +1,19 @@
+version: "1"
+identities:
+  user_a:
+    auth_header: "Bearer ${TOKEN_A}"
+    role: "user"
+  user_b:
+    auth_header: "Bearer ${TOKEN_B}"
+    role: "user"
+  admin:
+    auth_header: "Bearer ${TOKEN_ADMIN}"
+    role: "admin"
+  anonymous:
+    auth_header: ""
+    role: "anonymous"
+rules:
+  - path: "/users/v1/{username}"
+    allowed_roles: ["owner"]
+  - path: "/users/v1/_debug"
+    allowed_roles: ["admin"]
